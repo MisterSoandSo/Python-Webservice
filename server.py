@@ -1,14 +1,28 @@
 from flask import Flask, request, jsonify
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-import jwt
-import time
-import random
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token
+import os
+
+from backend import dummy_computation_func, dummy_computation_func_with_delay
 
 app = Flask(__name__)
 
-# Secret key for signing and verifying tokens
-SECRET_KEY = 'your-secret-key'
+PORT = 5000
+cert_file = 'example.crt'
+key_file = 'example.key'
+
+# Check if the certificate and key files exist
+if not os.path.isfile(cert_file) or not os.path.isfile(key_file):
+    raise Exception("SSL/TLS certificate and key files are missing.")
+
+app.config['JWT_SECRET_KEY'] = 'your-secret-key'
+app.config['JWT_TOKEN_LOCATION'] = ['headers']
+app.config['JWT_HEADER_TYPE'] = 'Bearer'
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = False 
+
+# Create a JWT manager
+jwt = JWTManager(app)
 
 limiter = Limiter(
     app=app,
@@ -16,46 +30,45 @@ limiter = Limiter(
     key_func=get_remote_address,
 )
 
-# Server Processing Functions
-def dummy_computation_func(packet):
-    reply = '{0} {1} is {2} years old and lives in {3}.'.format(packet['first_name'], packet['last_name'], packet['age'], packet['city']) 
-    return reply
-
-def dummy_computation_func_with_delay(packet):
-    reply = dummy_computation_func(packet)
-    time_list = [6, 15, 25, 30, 80]
-    time.sleep(random.choice(time_list))  # Simulate Long Computation Process
-    return reply
-
 dummy_comp = [dummy_computation_func, dummy_computation_func_with_delay]
+
+users = {
+    'user_id': {
+        'username': 'username',
+        'password': 'password_hash',  # Store the hashed password
+    }
+}
 
 # Routes
 @app.route('/status', methods=['GET'])
+@limiter.limit("10 per minute")  # Allow 10 requests per minute
 def status():
     return "Online!"
 
-@app.route('/predict', methods=['GET'])
-@limiter.limit("5 per minute")  # Allow 5 requests per minute
-def rate_limited_route():
-    return "Route is rate-limited!"
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    user = users.get('user_id')
 
-@app.route('/api/resource', methods=['GET'])
-def protected_resource():
-    token = request.headers.get('Authorization')
+    if user and password == user['password']:
+        access_token = create_access_token(identity=username)
+        return jsonify(access_token=access_token), 200
+    else:
+        return jsonify({'message': 'Invalid credentials'}), 401
+
+@app.route('/protected', methods=['GET'])
+@jwt_required()
+def protected():
+    data = request.headers.get('Payload')
     compute = int(request.headers.get('Compute'))
 
-    if not token:
-        return jsonify({'error': 'Token is missing'}), 401
+    if not data:
+        return jsonify({'error': 'Data is missing'}), 401
     if compute >= len(dummy_comp):
         return jsonify({'error': 'Algorithm not implemented'}), 501
-
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-        return jsonify({'message': dummy_comp[compute](payload)})
-    except jwt.ExpiredSignatureError:
-        return jsonify({'error': 'Token has expired'}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({'error': 'Invalid token'}), 401
+    return jsonify({'message': dummy_comp[compute](data)})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=PORT, ssl_context=(cert_file, key_file))
