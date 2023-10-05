@@ -9,8 +9,8 @@ from backend import dummy_computation_func, dummy_computation_func_with_delay
 app = Flask(__name__)
 
 PORT = 5000
-cert_file = 'example.crt'
-key_file = 'example.key'
+cert_file = 'ssl/example.crt'
+key_file = 'ssl/example.key'
 
 # Check if the certificate and key files exist
 if not os.path.isfile(cert_file) or not os.path.isfile(key_file):
