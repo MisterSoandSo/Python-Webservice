@@ -32,12 +32,8 @@ limiter = Limiter(
 
 dummy_comp = [dummy_computation_func, dummy_computation_func_with_delay]
 
-users = {
-    'user_id': {
-        'username': 'username',
-        'password': 'password_hash',  # Store the hashed password
-    }
-}
+#User Database
+users = {}
 
 # Routes
 @app.route('/status', methods=['GET'])
@@ -46,6 +42,7 @@ def status():
     return "Online!"
 
 @app.route('/login', methods=['POST'])
+@limiter.limit("2 per minute")  # Prevent Brute Force Logins
 def login():
     data = request.get_json()
     username = data.get('username')
