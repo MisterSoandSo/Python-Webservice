@@ -1,15 +1,15 @@
 # Python Webservice
  A python webservice that performs some dummy computations and returns a result. The project intends to simulate some computationally intensive python code that can be insert into the webservice.
 
-## Project Status: 10/6/2023  - Ongoing
-The initial goal are as follow:
-| Tasks                                                                               | Done |
-|-------------------------------------------------------------------------------------|------|
-| Take a json string as input and return a json string as output.                     | [x]  |
-| Needs to be secure with https and a username and password. Passwords hash required. | [x]  |
-| Database to store login credentials and keys.                                       | []  |
-| Needs to be able to handle multiple computations concurrently.                      | []  |
-| User management system to handle login and registrations.                           | [x]  |
+## Project Status: Ongoing (as of 10/15/2023)
+
+### Initial Goals:
+
+- [x] Take a JSON string as input and return a JSON string as output.
+- [x] Ensure secure HTTPS communication with username and password authentication. Passwords should be hashed.
+- [x] Set up a database to store login credentials and keys.
+- [x] Create a user management system that includes a database for storing login credentials and keys, and handles both login and registration processes.
+- [ ] Implement the ability to handle multiple computations concurrently.
 
 Additional goals
 1. Stricter Access Control
